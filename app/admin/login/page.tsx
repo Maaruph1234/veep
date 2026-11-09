@@ -15,16 +15,19 @@ export default function AdminLogin() {
     location.href = '/admin'
   }
   return (
-    <div className="min-h-screen bg-slate-50"><Header />
-      <main className="mx-auto max-w-md px-4 pt-12">
-        <form onSubmit={submit} className="card space-y-4 p-6 shadow-sm">
-          <h1 className="text-xl font-semibold text-navy">Administrator login</h1>
+    <div className="hero-bg flex min-h-screen flex-col">
+      <Header dark />
+      <main className="mx-auto flex w-full max-w-md flex-1 items-center px-4 py-10">
+        <form onSubmit={submit} className="w-full space-y-4 rounded-3xl bg-white p-7 shadow-2xl">
+          <span className="block-red text-sm font-bold">Super Administrator</span>
+          <h1 className="text-2xl font-extrabold text-navy">Administrator login</h1>
           <input className="input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input className="input" type="password" placeholder="Password" value={pw} onChange={e => setPw(e.target.value)} required />
-          {err && <p className="text-sm text-red-600">{err}</p>}
-          <button className="btn-primary w-full">Log in</button>
+          {err && <p className="text-sm font-medium text-apcred">{err}</p>}
+          <button className="btn-green w-full">Log in</button>
         </form>
-      </main><Footer />
+      </main>
+      <Footer dark />
     </div>
   )
 }

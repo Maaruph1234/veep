@@ -9,19 +9,27 @@ export default function Login() {
     if (r.ok) location.href = '/dashboard'; else { setErr('Invalid or expired access token'); setBusy(false) }
   }
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
-      <main className="mx-auto max-w-md px-4 pt-12">
-        <form onSubmit={submit} className="card space-y-4 p-6 shadow-sm">
-          <h1 className="text-xl font-semibold text-navy">Sponsor login</h1>
+    <div className="hero-bg flex min-h-screen flex-col">
+      <Header dark />
+      <main className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-4 py-10 lg:grid-cols-2">
+        <div className="space-y-3">
+          <div><span className="block-dark text-4xl font-black tracking-tight sm:text-6xl">Engage.</span></div>
+          <div><span className="block-red text-4xl font-black tracking-tight sm:text-6xl">Protect.</span></div>
+          <div><span className="block-dark text-4xl font-black tracking-tight sm:text-6xl">Deliver.</span></div>
+          <p className="max-w-lg pt-4 text-base leading-7 text-white/80">
+            The secure workspace for APC sponsors in Kebbi State to record and manage their own voter engagement data. Each sponsor sees only their own records.
+          </p>
+        </div>
+        <form onSubmit={submit} className="mx-auto w-full max-w-md space-y-4 rounded-3xl border border-white/20 bg-white p-7 shadow-2xl">
+          <h1 className="text-2xl font-extrabold text-navy">Sponsor login</h1>
           <p className="text-sm text-slate-600">Enter the access token given to you by the Directorate.</p>
           <input className="input" type="password" autoComplete="off" placeholder="Access token" value={token} onChange={e => setToken(e.target.value)} required />
-          {err && <p className="text-sm text-red-600">{err}</p>}
-          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Checking...' : 'Log in'}</button>
+          {err && <p className="text-sm font-medium text-apcred">{err}</p>}
+          <button className="btn-green w-full" disabled={busy}>{busy ? 'Checking...' : 'Log in'}</button>
           <a href="/admin/login" className="block text-center text-xs text-slate-500 underline">Administrator login</a>
         </form>
       </main>
-      <Footer />
+      <Footer dark />
     </div>
   )
 }

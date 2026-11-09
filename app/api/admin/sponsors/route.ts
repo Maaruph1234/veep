@@ -15,7 +15,7 @@ async function adminUser() {
   return p?.role === 'admin' && p.status === 'active' ? user : null
 }
 
-export async function POST(req: Request) {
+async function handle(req: Request) {
   const admin = await adminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const b = await req.json().catch(() => ({}))
@@ -66,4 +66,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
   return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+}
+
+export async function POST(req: Request) {
+  try { return await handle(req) }
+  catch (e: any) { return NextResponse.json({ error: 'Server error: ' + (e?.message || 'unknown') }, { status: 500 }) }
 }

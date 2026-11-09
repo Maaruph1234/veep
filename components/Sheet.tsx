@@ -43,19 +43,19 @@ function RecordForm({ initial, onClose, onSaved }: { initial?: any; onClose: () 
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
       <div className="card w-full max-w-lg space-y-3 p-5 shadow-lg">
         <h2 className="text-lg font-semibold text-navy">{initial ? 'Edit record' : 'Add record'}</h2>
-        <L t="Full name"><input className="input" maxLength={150} value={f.full_name} onChange={e => set('full_name', e.target.value)} /></L>
+        <L t="Name"><input className="input" maxLength={150} value={f.full_name} onChange={e => set('full_name', e.target.value)} /></L>
         <L t="Local Government Area"><select className="input" value={f.lga_id} onChange={e => setF({ ...f, lga_id: e.target.value, ward_id: '', polling_unit_id: '' })}><option value="">Select</option>{lgas.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
         <L t="Ward"><select className="input" value={f.ward_id} disabled={!f.lga_id} onChange={e => setF({ ...f, ward_id: e.target.value, polling_unit_id: '' })}><option value="">Select</option>{wards.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
         <L t="Polling Unit"><select className="input" value={f.polling_unit_id} disabled={!f.ward_id} onChange={e => set('polling_unit_id', e.target.value)}><option value="">Select</option>{pus.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
         <L t="Delimitation Code"><input className="input bg-slate-50" readOnly value={code || initial?.delimitation_code || ''} /></L>
         <div className="grid grid-cols-2 gap-3">
           <L t="Gender"><select className="input" value={f.gender} onChange={e => set('gender', e.target.value)}><option value="">Select</option>{GENDERS.map(g => <option key={g}>{g}</option>)}</select></L>
-          <L t="Disability status"><select className="input" value={f.disability_status} onChange={e => set('disability_status', e.target.value)}><option value="">Select</option>{DIS.map(g => <option key={g}>{g}</option>)}</select></L>
+          <L t="Status"><select className="input" value={f.disability_status} onChange={e => set('disability_status', e.target.value)}><option value="">Select</option>{DIS.map(g => <option key={g}>{g}</option>)}</select></L>
         </div>
         <L t="Date of birth"><input className="input" type="date" value={f.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} /></L>
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={f.consent} onChange={e => set('consent', e.target.checked)} className="mt-1" />
           <span>This person gave this information voluntarily and agreed to its use after seeing the <a className="underline" href="/privacy" target="_blank">privacy notice</a>.</span></label>
-        {err && <p className="text-sm text-red-600">{err}</p>}
+        {err && <p className="text-sm text-apcred">{err}</p>}
         <div className="flex justify-end gap-2"><button className="btn-ghost" onClick={onClose}>Cancel</button><button className="btn-green" disabled={busy} onClick={save}>{busy ? 'Saving...' : 'Save'}</button></div>
       </div>
     </div>
@@ -98,7 +98,7 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
   }, [query, sort, page])
   useEffect(() => { load() }, [load])
   const flt = (k: string, v: string) => { setPage(0); setF(p => ({ ...p, [k]: v, ...(k === 'lga' ? { ward: '', pu: '' } : {}), ...(k === 'ward' ? { pu: '' } : {}) })) }
-  const th = (label: string, col?: string) => <th key={label} className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase text-slate-600">
+  const th = (label: string, col?: string) => <th key={label} className="whitespace-nowrap border-b border-slate-200 bg-green-50 px-3 py-3 text-left text-xs font-bold uppercase text-navy">
     {col ? <button onClick={() => setSort(s => ({ col, asc: s.col === col ? !s.asc : true }))}>{label}{sort.col === col ? (sort.asc ? ' ▲' : ' ▼') : ''}</button> : label}</th>
 
   async function del(r: any) {
@@ -116,8 +116,8 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
     }
     await sb.rpc('log_event', { p_action: 'export', p_details: { format: kind, rows: all.length } })
     const safe = (v: any) => { const s = String(v ?? ''); return /^[=+\-@\t\r]/.test(s) ? "'" + s : s }
-    const head = [...(admin ? ['Sponsor'] : []), 'S/N', 'Full Name', 'Local Government Area', 'Ward', 'Polling Unit', 'Delimitation Code', 'Gender', 'Disability Status', 'Date of Birth', 'Date Added']
-    const data = all.map((r, i) => [...(admin ? [r.sponsors?.sponsor_name] : []), i + 1, r.full_name, r.local_governments?.name, r.wards?.name, r.polling_units?.name, r.delimitation_code, r.gender, r.disability_status, r.date_of_birth, r.created_at?.slice(0, 10)].map(safe))
+    const head = [...(admin ? ['Sponsor'] : []), 'S/N', 'Name', 'LGA', 'Ward', 'Polling Unit', 'Delimitation Code', 'Date of Birth', 'Gender', 'Status']
+    const data = all.map((r, i) => [...(admin ? [r.sponsors?.sponsor_name] : []), i + 1, r.full_name, r.local_governments?.name, r.wards?.name, r.polling_units?.name, r.delimitation_code, r.date_of_birth, r.gender, r.disability_status].map(safe))
     if (kind === 'csv') {
       const csv = [head, ...data].map(a => a.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = 'veep-records.csv'; a.click()
@@ -127,7 +127,7 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
     }
     setMsg('')
   }
-  const card = (t: string, v: any) => <div key={t} className="card border-l-4 border-l-green-600 p-3"><div className="text-xs text-slate-500">{t}</div><div className="text-2xl font-semibold text-navy">{v ?? 0}</div></div>
+  const card = (t: string, v: any) => <div key={t} className="card border-t-4 border-t-green-600 p-4"><div className="text-xs text-slate-500">{t}</div><div className="text-3xl font-extrabold text-navy">{v ?? 0}</div></div>
   const pages = Math.max(1, Math.ceil(total / PAGE))
   return (
     <div className="space-y-4">
@@ -143,12 +143,12 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
         <select className="input" value={f.ward} disabled={!f.lga} onChange={e => flt('ward', e.target.value)}><option value="">All wards</option>{wards.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
         <select className="input" value={f.pu} disabled={!f.ward} onChange={e => flt('pu', e.target.value)}><option value="">All polling units</option>{pus.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
         <select className="input" value={f.gender} onChange={e => flt('gender', e.target.value)}><option value="">All genders</option>{GENDERS.map(g => <option key={g}>{g}</option>)}</select>
-        <select className="input" value={f.dis} onChange={e => flt('dis', e.target.value)}><option value="">All disability status</option>{DIS.map(g => <option key={g}>{g}</option>)}</select>
+        <select className="input" value={f.dis} onChange={e => flt('dis', e.target.value)}><option value="">All statuses</option>{DIS.map(g => <option key={g}>{g}</option>)}</select>
       </div>
-      {msg && <p className="text-sm text-red-600">{msg}</p>}
-      <div className="card overflow-x-auto">
+      {msg && <p className="text-sm text-apcred">{msg}</p>}
+      <div className="card overflow-hidden overflow-x-auto">
         <table className="min-w-[1000px] w-full text-sm">
-          <thead><tr>{[...(admin ? [th('Sponsor')] : []), th('S/N'), th('Full Name', 'full_name'), th('LGA'), th('Ward'), th('Polling Unit'), th('Delim. Code', 'delimitation_code'), th('Gender', 'gender'), th('Disability Status', 'disability_status'), th('Date of Birth', 'date_of_birth'), th('Date Added', 'created_at'), th('')]}</tr></thead>
+          <thead><tr>{[...(admin ? [th('Sponsor')] : []), th('S/N'), th('Name', 'full_name'), th('LGA'), th('Ward'), th('Polling Unit'), th('Delimitation Code', 'delimitation_code'), th('Date of Birth', 'date_of_birth'), th('Gender', 'gender'), th('Status', 'disability_status'), th('')]}</tr></thead>
           <tbody>{rows.map((r, i) => (
             <tr key={r.id} className="border-b border-slate-100 hover:bg-green-50/50">
               {admin && <td className="px-3 py-2">{r.sponsors?.sponsor_name}</td>}
@@ -156,11 +156,10 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
               <td className="px-3 py-2"><Cell r={r} field="full_name" type="text" reload={load} setMsg={setMsg} /></td>
               <td className="px-3 py-2">{r.local_governments?.name}</td><td className="px-3 py-2">{r.wards?.name}</td><td className="px-3 py-2">{r.polling_units?.name}</td>
               <td className="px-3 py-2 font-mono text-xs">{r.delimitation_code}</td>
+              <td className="px-3 py-2"><Cell r={r} field="date_of_birth" type="date" reload={load} setMsg={setMsg} /></td>
               <td className="px-3 py-2"><Cell r={r} field="gender" opts={GENDERS} reload={load} setMsg={setMsg} /></td>
               <td className="px-3 py-2"><Cell r={r} field="disability_status" opts={DIS} reload={load} setMsg={setMsg} /></td>
-              <td className="px-3 py-2"><Cell r={r} field="date_of_birth" type="date" reload={load} setMsg={setMsg} /></td>
-              <td className="px-3 py-2 text-slate-500">{r.created_at?.slice(0, 10)}</td>
-              <td className="whitespace-nowrap px-3 py-2 text-right"><button className="mr-3 text-navy underline" onClick={() => setForm(r)}>Edit</button><button className="text-red-600 underline" onClick={() => del(r)}>Delete</button></td>
+              <td className="whitespace-nowrap px-3 py-2 text-right"><button className="mr-3 text-navy underline" onClick={() => setForm(r)}>Edit</button><button className="text-apcred underline" onClick={() => del(r)}>Delete</button></td>
             </tr>))}
             {!rows.length && <tr><td colSpan={12} className="px-3 py-8 text-center text-slate-500">No records yet</td></tr>}
           </tbody>
