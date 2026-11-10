@@ -38,12 +38,12 @@ export default function AdminPanel() {
         <div className="mt-2 flex gap-2"><button className="btn-primary" onClick={() => navigator.clipboard.writeText(token.t)}>Copy</button><button className="btn-ghost" onClick={() => setToken(null)}>Done</button></div></div>}
       {tab === 'sponsors' && <>
         <div className="card flex flex-wrap items-end gap-2 p-4">
-          <label className="text-sm">Sponsor name<input className="input mt-1" value={name} onChange={e => setName(e.target.value)} /></label>
+          <label className="text-sm">Label (the sponsor enters their own name at first login)<input className="input mt-1" value={name} onChange={e => setName(e.target.value)} /></label>
           <label className="text-sm">Token valid (days, 0 = no expiry)<input className="input mt-1" type="number" min={0} value={days} onChange={e => setDays(e.target.value)} /></label>
           <button className="btn-green" onClick={() => act({ action: 'create', name, expires_days: +days })}>Create sponsor and token</button>
         </div>
-        <div className="card overflow-hidden overflow-x-auto"><table className="min-w-[700px] w-full text-sm"><thead><tr className="bg-green-50 text-left text-xs font-bold uppercase text-navy"><th className="p-3">Sponsor</th><th>Status</th><th>Token</th><th>Records</th><th>Created</th><th></th></tr></thead>
-          <tbody>{sponsors.map(s => <tr key={s.id} className="border-t border-slate-100"><td className="p-3 font-medium">{s.sponsor_name}</td><td>{s.status}</td><td>{s.token_active ? 'Active' : 'None'}</td><td>{s.record_count}</td><td>{s.created_at?.slice(0, 10)}</td>
+        <div className="card overflow-hidden overflow-x-auto"><table className="min-w-[700px] w-full text-sm"><thead><tr className="bg-green-50 text-left text-xs font-bold uppercase text-navy"><th className="p-3">Sponsor</th><th>Status</th><th>Position</th><th>Token</th><th>Progress</th><th>Created</th><th></th></tr></thead>
+          <tbody>{sponsors.map(s => <tr key={s.id} className="border-t border-slate-100"><td className="p-3 font-medium">{s.sponsor_name}</td><td>{s.status}</td><td>{s.category || 'Not set up yet'}</td><td>{s.token_active ? 'Active' : 'None'}</td><td>{s.record_count}{s.quota ? ` / ${s.quota}` : ''}</td><td>{s.created_at?.slice(0, 10)}</td>
             <td className="space-x-3 whitespace-nowrap p-3 text-right">
               <button className="text-navy underline" onClick={() => act({ action: 'reset', sponsor_id: s.id, expires_days: +days }, s.sponsor_name)}>New token</button>
               <button className="text-navy underline" onClick={() => confirm('Revoke this sponsor’s token?') && act({ action: 'revoke', sponsor_id: s.id })}>Revoke</button>

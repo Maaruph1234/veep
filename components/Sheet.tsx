@@ -6,6 +6,7 @@ const sb = supabaseBrowser()
 const GENDERS = ['Male', 'Female', 'Prefer not to say']
 const DIS = ['Person with Disability', 'Non-disabled', 'Prefer not to say']
 const PAGE = 25
+const NEW = '__new__'
 const okDob = (d: string) => { const t = new Date(d), m = new Date(); m.setFullYear(m.getFullYear() - 18); return !isNaN(+t) && t <= m && t.getFullYear() >= 1900 }
 
 function useOpts(table: string, col: string | null, parent: string) {
@@ -23,18 +24,26 @@ function useOpts(table: string, col: string | null, parent: string) {
 
 function RecordForm({ initial, onClose, onSaved }: { initial?: any; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState<any>(initial ? { ...initial } : { full_name: '', lga_id: '', ward_id: '', polling_unit_id: '', gender: '', disability_status: '', date_of_birth: '', consent: false })
-  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [newPu, setNewPu] = useState('')
   const lgas = useOpts('local_governments', null, ''), wards = useOpts('wards', 'lga_id', f.lga_id), pus = useOpts('polling_units', 'ward_id', f.ward_id)
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }))
   const code = pus.find(p => p.id === f.polling_unit_id)?.delimitation_code || ''
   async function save() {
     if (f.full_name.trim().length < 2) return setErr('Enter the full name')
+    const addingPu = f.polling_unit_id === NEW
     if (!f.lga_id || !f.ward_id || !f.polling_unit_id) return setErr('Select LGA, ward and polling unit')
+    if (addingPu && newPu.trim().length < 2) return setErr('Type the polling unit name')
     if (!f.gender || !f.disability_status) return setErr('Select gender and disability status')
     if (!f.date_of_birth || !okDob(f.date_of_birth)) return setErr('Enter a valid date of birth (18 or older)')
     if (!f.consent) return setErr('Consent must be confirmed')
     setBusy(true); setErr('')
-    const row = { full_name: f.full_name.trim(), lga_id: f.lga_id, ward_id: f.ward_id, polling_unit_id: f.polling_unit_id, gender: f.gender, disability_status: f.disability_status, date_of_birth: f.date_of_birth, consent_recorded: true }
+    let puId = f.polling_unit_id
+    if (addingPu) {
+      const r = await sb.rpc('add_polling_unit', { p_ward_id: f.ward_id, p_name: newPu.trim() })
+      if (r.error || !r.data) { setErr(r.error?.message || 'Could not add the polling unit'); setBusy(false); return }
+      puId = r.data
+    }
+    const row = { full_name: f.full_name.trim(), lga_id: f.lga_id, ward_id: f.ward_id, polling_unit_id: puId, gender: f.gender, disability_status: f.disability_status, date_of_birth: f.date_of_birth, consent_recorded: true }
     const { error } = initial ? await sb.from('supporter_records').update(row).eq('id', initial.id) : await sb.from('supporter_records').insert(row)
     if (error) { setErr(error.message); setBusy(false) } else { onSaved(); onClose() }
   }
@@ -46,8 +55,9 @@ function RecordForm({ initial, onClose, onSaved }: { initial?: any; onClose: () 
         <L t="Name"><input className="input" maxLength={150} value={f.full_name} onChange={e => set('full_name', e.target.value)} /></L>
         <L t="Local Government Area"><select className="input" value={f.lga_id} onChange={e => setF({ ...f, lga_id: e.target.value, ward_id: '', polling_unit_id: '' })}><option value="">Select</option>{lgas.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
         <L t="Ward"><select className="input" value={f.ward_id} disabled={!f.lga_id} onChange={e => setF({ ...f, ward_id: e.target.value, polling_unit_id: '' })}><option value="">Select</option>{wards.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
-        <L t="Polling Unit"><select className="input" value={f.polling_unit_id} disabled={!f.ward_id} onChange={e => set('polling_unit_id', e.target.value)}><option value="">Select</option>{pus.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></L>
-        <L t="Delimitation Code"><input className="input bg-slate-50" readOnly value={code || initial?.delimitation_code || ''} /></L>
+        <L t="Polling Unit"><select className="input" value={f.polling_unit_id} disabled={!f.ward_id} onChange={e => set('polling_unit_id', e.target.value)}><option value="">Select</option>{pus.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}{f.ward_id && <option value={NEW}>+ My polling unit is not listed</option>}</select></L>
+        {f.polling_unit_id === NEW && <L t="Type the polling unit name"><input className="input" maxLength={150} placeholder="e.g. Sabon Gari Primary School" value={newPu} onChange={e => setNewPu(e.target.value)} /></L>}
+        <L t="Delimitation Code"><input className="input bg-slate-50" readOnly value={f.polling_unit_id === NEW ? 'Assigned automatically when you save' : code || initial?.delimitation_code || ''} /></L>
         <div className="grid grid-cols-2 gap-3">
           <L t="Gender"><select className="input" value={f.gender} onChange={e => set('gender', e.target.value)}><option value="">Select</option>{GENDERS.map(g => <option key={g}>{g}</option>)}</select></L>
           <L t="Status"><select className="input" value={f.disability_status} onChange={e => set('disability_status', e.target.value)}><option value="">Select</option>{DIS.map(g => <option key={g}>{g}</option>)}</select></L>
@@ -77,7 +87,7 @@ function Cell({ r, field, type, opts, reload, setMsg }: any) {
   return <input autoFocus className="input py-1" type={type} value={v} onChange={e => setV(e.target.value)} onBlur={() => commit(v)} onKeyDown={e => { if (e.key === 'Enter') commit(v); if (e.key === 'Escape') setOn(false) }} />
 }
 
-export default function Sheet({ admin = false }: { admin?: boolean }) {
+export default function Sheet({ admin = false, quota }: { admin?: boolean; quota?: number }) {
   const [rows, setRows] = useState<any[]>([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(0)
   const [sort, setSort] = useState({ col: 'created_at', asc: false })
   const [f, setF] = useState({ q: '', lga: '', ward: '', pu: '', gender: '', dis: '' })
@@ -131,9 +141,16 @@ export default function Sheet({ admin = false }: { admin?: boolean }) {
   const pages = Math.max(1, Math.ceil(total / PAGE))
   return (
     <div className="space-y-4">
+      {!admin && quota ? (
+        <div className="card p-4">
+          <div className="flex items-end justify-between text-sm"><span className="font-semibold text-navy">Your target</span><span className="font-bold text-navy">{stats.total ?? 0} of {quota} voters</span></div>
+          <div className="mt-2 h-3 overflow-hidden rounded-full bg-green-50"><div className="h-full rounded-full bg-green-600" style={{ width: `${Math.min(100, ((stats.total ?? 0) / quota) * 100)}%` }} /></div>
+          <p className="mt-2 text-xs text-slate-500">{(stats.total ?? 0) >= quota ? 'Target reached. Well done.' : `${quota - (stats.total ?? 0)} more to go.`}</p>
+        </div>
+      ) : null}
       {!admin && <div className="grid grid-cols-2 gap-3 md:grid-cols-5">{card('Total records', stats.total)}{card('Male', stats.male)}{card('Female', stats.female)}{card('With disability', stats.pwd)}{card('Without disability', stats.non_pwd)}</div>}
       <div className="flex flex-wrap items-center gap-2">
-        {!admin && <button className="btn-green" onClick={() => setForm({})}>+ Add new record</button>}
+        {!admin && <button className="btn-green disabled:opacity-50" disabled={!!quota && (stats.total ?? 0) >= quota} onClick={() => setForm({})}>+ Add new record</button>}
         <input className="input max-w-xs" placeholder="Search by name" value={f.q} onChange={e => flt('q', e.target.value)} />
         <button className="btn-ghost" onClick={() => exportAs('xlsx')}>Export Excel</button>
         <button className="btn-ghost" onClick={() => exportAs('csv')}>Export CSV</button>

@@ -11,8 +11,20 @@ body { @apply bg-white text-slate-800 antialiased; font-family: 'Inter', system-
   .btn-ghost { @apply inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-green-50 disabled:opacity-50; }
   .input { @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600/40; }
   .card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
-  .hero-bg { background: radial-gradient(circle at 85% 10%, rgba(0,135,62,.55), transparent 45%), linear-gradient(135deg, #031f12 0%, #05341D 45%, #0a6b38 100%); }
+  .hero-bg { background: radial-gradient(circle at 0% 0%, rgba(45,166,78,.65), transparent 50%), radial-gradient(circle at 100% 0%, rgba(227,27,35,.45), transparent 45%), radial-gradient(circle at 100% 100%, rgba(81,194,231,.75), transparent 52%), radial-gradient(circle at 0% 100%, rgba(227,27,35,.3), transparent 40%), linear-gradient(180deg,#f4f1ee,#e9f4ef); }
   .block-dark { @apply inline-block rounded-2xl border border-white/10 bg-[#031f12]/90 px-5 py-2 text-white shadow-xl; }
   .block-green { @apply inline-block rounded-2xl bg-[#2fbf71] px-5 py-2 text-[#05341D] shadow-xl; }
   .block-red { @apply inline-block rounded-2xl bg-apcred px-5 py-2 text-white shadow-xl; }
 }
+
+@keyframes tile-in { from { opacity: 0; transform: translateY(28px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes tile-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes tile-shine { 0% { transform: translateX(-120%) skewX(-20deg); } 60%,100% { transform: translateX(260%) skewX(-20deg); } }
+.tile { position: relative; overflow: hidden; opacity: 0; animation: tile-in .7s cubic-bezier(.2,.8,.2,1) forwards, tile-float 5s ease-in-out infinite; }
+.tile::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 35%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: tile-shine 5.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .tile, .tile::after { animation: none; opacity: 1; } }
+
+/* APC logo watermark over every page */
+body::before { content: ''; position: fixed; inset: -50%; z-index: 40; pointer-events: none; opacity: .07; transform: rotate(-20deg);
+  background-image: url('/apc-watermark.png'); background-repeat: repeat; background-size: 330px auto; }
+@media print { body::before { display: none; } }

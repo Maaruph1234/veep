@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { supabaseServer } from '@/lib/supabase/server'
+import { sponsorEmail } from '@/lib/sponsorEmail'
 
 const fail = () => NextResponse.json({ error: 'Invalid or expired access token' }, { status: 401 })
 
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
   // The sponsor's Supabase Auth password IS the token, so the session is a normal Supabase session
   // and every query the sponsor makes is checked by Row Level Security.
   const sb = supabaseServer()
-  const { data, error } = await sb.auth.signInWithPassword({ email: `${sp.id}@sponsors.veep.local`, password: token })
+  const { data, error } = await sb.auth.signInWithPassword({ email: sponsorEmail(sp.id), password: token })
   if (error || !data.user) return fail()
   await db.from('audit_logs').insert({ actor_id: data.user.id, actor_role: 'sponsor', action: 'login' })
   return NextResponse.json({ ok: true })

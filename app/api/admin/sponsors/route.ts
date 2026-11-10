@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { createHash, randomBytes, randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { supabaseServer } from '@/lib/supabase/server'
+import { sponsorEmail as emailOf } from '@/lib/sponsorEmail'
 
 const newToken = () => 'VEEP-' + randomBytes(32).toString('base64url')
 const hashOf = (t: string) => createHash('sha256').update(t).digest('hex')
-const emailOf = (sponsorId: string) => `${sponsorId}@sponsors.veep.local`
 
 async function adminUser() {
   const sb = supabaseServer()
@@ -30,12 +30,12 @@ async function handle(req: Request) {
     if (name.length < 2 || name.length > 120) return NextResponse.json({ error: 'Enter a sponsor name' }, { status: 400 })
     const id = randomUUID(), token = newToken()
     const { data: u, error } = await db.auth.admin.createUser({ email: emailOf(id), password: token, email_confirm: true })
-    if (error || !u.user) return NextResponse.json({ error: 'Could not create account' }, { status: 500 })
+    if (error || !u.user) return NextResponse.json({ error: 'Could not create account: ' + (error?.message || 'no user returned') }, { status: 500 })
     const uid = u.user.id
     const r1 = await db.from('profiles').insert({ id: uid, full_name: name, role: 'sponsor' })
     const r2 = await db.from('sponsors').insert({ id, user_id: uid, sponsor_name: name })
     const r3 = await db.from('access_tokens').insert({ sponsor_id: id, token_hash: hashOf(token), expires_at: expires })
-    if (r1.error || r2.error || r3.error) { await db.auth.admin.deleteUser(uid); return NextResponse.json({ error: 'Could not save sponsor' }, { status: 500 }) }
+    if (r1.error || r2.error || r3.error) { await db.auth.admin.deleteUser(uid); return NextResponse.json({ error: 'Could not save sponsor: ' + [r1, r2, r3].map(r => r.error?.message).filter(Boolean).join(' | ') }, { status: 500 }) }
     await log('create_sponsor', id)
     return NextResponse.json({ token })   // shown once, never stored in plain text
   }
